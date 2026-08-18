@@ -1,0 +1,32 @@
+{
+  "name": "dsh-observability",
+  "version": "0.1.0",
+  "description": "Shared structured diagnostics for the DSH Claw plugin suite. 治理插件共用诊断日志。",
+  "keywords": ["dsh", "deepseek-harness", "observability"],
+  "license": "MIT",
+  "type": "module",
+  "main": "./host.js",
+  "exports": {
+    ".": "./observe.mjs",
+    "./observe": "./observe.mjs",
+    "./codes": "./codes.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "host.js",
+    "observe.mjs",
+    "codes.mjs",
+    "sanitize.mjs",
+    "store.mjs",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  }
+}
