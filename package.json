@@ -1,20 +1,27 @@
 {
   "name": "dsh-observability",
-  "version": "0.1.0",
-  "description": "Shared structured diagnostics for the DSH Claw plugin suite. 治理插件共用诊断日志。",
-  "keywords": ["dsh", "deepseek-harness", "observability"],
+  "version": "0.2.0",
+  "description": "Shared structured diagnostics and a Settings page for the DSH Claw plugin suite. 治理插件共用诊断日志与运行诊断页。",
+  "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "observability"],
   "license": "MIT",
   "type": "module",
   "main": "./host.js",
   "exports": {
-    ".": "./observe.mjs",
+    ".": "./host.js",
+    "./client": "./client.js",
     "./observe": "./observe.mjs",
     "./codes": "./codes.mjs",
     "./package.json": "./package.json"
   },
   "files": [
     "host.js",
+    "client.js",
     "observe.mjs",
+    "observe-filter.mjs",
+    "observe-i18n.mjs",
+    "observe-styles.mjs",
+    "observe-page.mjs",
+    "observe-runtime.mjs",
     "codes.mjs",
     "sanitize.mjs",
     "store.mjs",
@@ -24,9 +31,12 @@
   ],
   "engines": { "node": ">=20" },
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "build": "node scripts/build-client.mjs",
+    "build:check": "node scripts/build-client.mjs --check",
+    "test": "npm run build:check && node --test test/*.test.mjs"
   },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" }
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web" }
   }
 }

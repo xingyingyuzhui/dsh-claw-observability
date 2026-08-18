@@ -1,10 +1,14 @@
 # dsh-observability
 
-治理套件共用的诊断日志库。`apply()` 为空，只为和其它套件包并排放进 profile。其它插件通过同级的 `../dsh-observability/observe.mjs` 引用。
+治理套件共用的诊断日志，以及设置里的 **运行诊断** 页。其它插件通过同级的 `../dsh-observability/observe.mjs` 写日志；本包再提供按错误码 / `traceId` 看时间线的页面。
 
 ```sh
 dsh plugin --profile web add github:xingyingyuzhui/dsh-observability
 ```
+
+装完重启 `dsh web`。打开 **设置 → 运行诊断**（在「审计」旁边）。
+
+改 Client 源码后执行 `npm run build`，不要手改生成的 `client.js`。
 
 - 记操作终态，不记每次内部函数调用
 - 终态只能是 `succeeded` / `rejected` / `failed` / `degraded`
