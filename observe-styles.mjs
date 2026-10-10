@@ -1,4 +1,4 @@
-export const ATTR = 'data-dsh-observability'
+export const ATTR = 'data-dsh-claw-observability'
 
 export const CSS = [
   'body[' + ATTR + '] .dob-page{display:flex;flex-direction:column;gap:12px;width:100%;max-width:760px;margin:0 auto;padding:8px 24px 36px;color:var(--dsw-alias-label-primary);box-sizing:border-box}',

@@ -24,7 +24,12 @@ function headerTrace(input) {
   if (typeof input === 'string' && input.trim()) return input.trim()
   const headers = input && input.headers
   if (!headers) return ''
-  const raw = headers['x-dsh-trace'] || headers['X-DSH-Trace'] || headers['x-dsh-trace-id']
+  let raw
+  if (typeof headers.get === 'function') {
+    raw = headers.get('x-dsh-trace') || headers.get('x-dsh-trace-id')
+  } else {
+    raw = headers['x-dsh-trace'] || headers['X-DSH-Trace'] || headers['x-dsh-trace-id']
+  }
   return raw ? String(raw).trim() : ''
 }
 

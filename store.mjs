@@ -30,7 +30,7 @@ export function writeDiag(event) {
     return true
   } catch (error) {
     try {
-      process.stderr.write('[dsh-observability] ' + line)
+      process.stderr.write('[dsh-claw-observability] ' + line)
     } catch { /* nowhere to write */ }
     return false
   }

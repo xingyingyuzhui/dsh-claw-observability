@@ -1,4 +1,4 @@
-export const NS = 'dsh-observability'
+export const NS = 'dsh-claw-observability'
 
 export const COPY = {
   zh: {

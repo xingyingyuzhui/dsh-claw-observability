@@ -8,7 +8,7 @@ const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'cl
 
 test('generated client keeps the factory contract', () => {
   assert.match(src, /Do not edit by hand/)
-  assert.match(src, /id: 'dsh-observability'/)
+  assert.match(src, /id: 'dsh-claw-observability'/)
   assert.match(src, /inject = \['slots', 'locale'\]/)
   assert.match(src, /return module\.exports/)
   assert.match(src, /settings\.section/)
@@ -16,5 +16,7 @@ test('generated client keeps the factory contract', () => {
   assert.match(src, /tracePlaceholder/)
   assert.match(src, /function filterDiag/)
   assert.match(src, /data-dob-pick/)
-  assert.match(src, /X-DSH-Observability/)
+  assert.match(src, /\/api\/dsh-claw\/observability\/query/)
+  assert.doesNotMatch(src, /X-DSH-Observability/)
+  assert.doesNotMatch(src, /\/dsh-claw-observability\//)
 })

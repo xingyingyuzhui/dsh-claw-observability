@@ -37,7 +37,7 @@ export function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM)
 
     const load = React.useCallback(() => {
       setBusy(true)
-      return post('/dsh-observability/query', { limit: 500 }).then((data) => {
+      return post('/api/dsh-claw/observability/query', { limit: 500 }).then((data) => {
         setRows(Array.isArray(data.items) ? data.items : [])
         setTruncated(data.truncated === true)
       }).catch((err) => {
@@ -202,7 +202,7 @@ export function registerSettings(ctx, React, t, Page) {
   return slots.inject('settings.section', function () {
     return slots.register({
       name: 'settings.section',
-      id: 'dsh-observability',
+      id: 'dsh-claw-observability',
       order: 22,
       locale: NS,
       label() { return t('nav') },

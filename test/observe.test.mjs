@@ -8,7 +8,7 @@ import { sanitizeEvent } from '../sanitize.mjs'
 
 test('sanitize drops secrets and unknown fields', () => {
   const row = sanitizeEvent({
-    plugin: 'dsh-agent-memory',
+    plugin: 'dsh-claw-memory',
     operation: 'write_vault',
     outcome: 'failed',
     token: 'ghp_secret',
@@ -16,7 +16,7 @@ test('sanitize drops secrets and unknown fields', () => {
     error: { name: 'Error', message: 'bearer abc failed' },
     extra: { dump: true },
   })
-  assert.equal(row.plugin, 'dsh-agent-memory')
+  assert.equal(row.plugin, 'dsh-claw-memory')
   assert.equal(row.token, undefined)
   assert.equal(row.prompt, undefined)
   assert.equal(row.extra, undefined)
@@ -26,7 +26,7 @@ test('sanitize drops secrets and unknown fields', () => {
 test('operation emits one terminal and keeps a trace', async () => {
   const home = await mkdtemp(join(tmpdir(), 'obs-'))
   setObserveHome(home)
-  const op = operation({ plugin: 'dsh-agent-registry', feature: 'agent', operation: 'create_agent' })
+  const op = operation({ plugin: 'dsh-claw-registry', feature: 'agent', operation: 'create_agent' })
   op.start()
   op.stage('reserve_dir')
   const done = op.success({ slug: 'demo' })
@@ -43,9 +43,9 @@ test('runWithTrace inherits across child operations', () => {
   setObserveHome(join(tmpdir(), 'obs-als'))
   runWithTrace('tr_fixedtrace01', () => {
     assert.equal(currentTraceId(), 'tr_fixedtrace01')
-    const parent = operation({ plugin: 'dsh-agent-registry', operation: 'create_agent' })
+    const parent = operation({ plugin: 'dsh-claw-registry', operation: 'create_agent' })
     parent.run(() => {
-      const child = operation({ plugin: 'dsh-agent-identity', operation: 'write_identity' })
+      const child = operation({ plugin: 'dsh-claw-identity', operation: 'write_identity' })
       assert.equal(child.traceId, 'tr_fixedtrace01')
       assert.equal(child.parentOperationId, parent.operationId)
       child.degraded(CODES.MEMORY_READ_FALLBACK_EMPTY, { skipReason: 'enoent' })
