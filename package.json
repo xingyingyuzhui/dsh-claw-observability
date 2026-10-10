@@ -1,8 +1,13 @@
 {
-  "name": "dsh-observability",
-  "version": "0.2.0",
+  "name": "dsh-claw-observability",
+  "version": "0.3.0-rc.2",
   "description": "Shared structured diagnostics and a Settings page for the DSH Claw plugin suite. 治理插件共用诊断日志与运行诊断页。",
-  "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "observability"],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "observability"
+  ],
   "license": "MIT",
   "type": "module",
   "main": "./host.js",
@@ -29,14 +34,26 @@
     "README.md",
     "LICENSE"
   ],
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "node scripts/build-client.mjs",
     "build:check": "node scripts/build-client.mjs --check",
     "test": "npm run build:check && node --test test/*.test.mjs"
   },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
-    "client": { "platform": "web" }
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "dependencies": {
+    "dsh-claw-core": "0.3.0-rc.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": "^0.2.0-rc.1"
   }
 }
