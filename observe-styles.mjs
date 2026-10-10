@@ -16,6 +16,7 @@ export const CSS = [
   'body[' + ATTR + '] .dob-btn{height:32px;padding:0 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:13px}',
   'body[' + ATTR + '] .dob-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}',
   'body[' + ATTR + '] .dob-btn:disabled{opacity:.45;cursor:not-allowed}',
+  'body[' + ATTR + '] .dob-more{align-self:center}',
   'body[' + ATTR + '] .dob-empty{margin:0;font-size:13px;color:var(--dsw-alias-label-tertiary)}',
   'body[' + ATTR + '] .dob-note{margin:0;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
   'body[' + ATTR + '] .dob-list{display:flex;flex-direction:column;gap:8px}',

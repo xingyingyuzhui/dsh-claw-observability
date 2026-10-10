@@ -1,6 +1,8 @@
 import { NS, pluginLabel } from './observe-i18n.mjs'
 import { diagFacets, emptyDiagQuery, filterDiag, serializeDiag } from './observe-filter.mjs'
 
+const DIAG_PAGE = 500
+
 function rangeLabel(t, range) {
   if (range === 'yesterday') return t('rangeYesterday')
   if (range === 'week') return t('rangeWeek')
@@ -27,7 +29,7 @@ export function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM)
       return subscribeLocale(() => setLocaleTick((n) => n + 1))
     }, [subscribeLocale])
     const [rows, setRows] = React.useState([])
-    const [truncated, setTruncated] = React.useState(false)
+    const [nextCursor, setNextCursor] = React.useState(null)
     const [query, setQuery] = React.useState(emptyDiagQuery)
     const [openPick, setOpenPick] = React.useState('')
     const [menuBox, setMenuBox] = React.useState(null)
@@ -35,17 +37,24 @@ export function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM)
     const facets = diagFacets(rows)
     const visible = filterDiag(rows, query)
 
-    const load = React.useCallback(() => {
+    const load = React.useCallback((cursor) => {
       setBusy(true)
-      return post('/api/dsh-claw/observability/query', { limit: 500 }).then((data) => {
-        setRows(Array.isArray(data.items) ? data.items : [])
-        setTruncated(data.truncated === true)
+      const payload = cursor ? { limit: DIAG_PAGE, cursor } : { limit: DIAG_PAGE }
+      return post('/api/dsh-claw/observability/query', payload).then((data) => {
+        const items = Array.isArray(data.items) ? data.items : []
+        setRows((prev) => (cursor ? prev.concat(items) : items))
+        setNextCursor(typeof data.nextCursor === 'string' && data.nextCursor ? data.nextCursor : null)
       }).catch((err) => {
         toast(String(err.message || t('fail')))
       }).finally(() => setBusy(false))
     }, [])
 
-    React.useEffect(() => { load() }, [load])
+    const refresh = React.useCallback(() => load(null), [load])
+    const loadMore = React.useCallback(() => {
+      if (nextCursor) load(nextCursor)
+    }, [load, nextCursor])
+
+    React.useEffect(() => { refresh() }, [refresh])
 
     React.useEffect(() => {
       if (!openPick) return undefined
@@ -162,11 +171,11 @@ export function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM)
       menu('code', [{ id: 'all', label: t('codeAll') }].concat(facets.codes.map((id) => ({ id, label: id }))), query.code, (id) => setQuery({ ...query, code: id })),
       el('div', { className: 'dob-toolbar' },
         el('span', { className: 'dob-count' }, t('count', { shown: visible.length, total: rows.length })),
-        el('button', { type: 'button', className: 'dob-btn', disabled: busy, onClick: load }, t('refresh')),
+        el('button', { type: 'button', className: 'dob-btn', disabled: busy, onClick: refresh }, t('refresh')),
         el('button', { type: 'button', className: 'dob-btn', disabled: busy || visible.length === 0, onClick: () => download('jsonl') }, t('exportJson')),
         el('button', { type: 'button', className: 'dob-btn', disabled: busy || visible.length === 0, onClick: () => download('md') }, t('exportMd')),
       ),
-      truncated ? el('p', { className: 'dob-note' }, t('truncated')) : null,
+      nextCursor ? el('p', { className: 'dob-note' }, t('truncated')) : null,
       visible.length === 0
         ? el('p', { className: 'dob-empty' }, emptyText)
         : el('div', { className: 'dob-list' }, visible.map((row, index) => el('div', {
@@ -192,6 +201,9 @@ export function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM)
           ) : null,
           row.error && row.error.message ? el('div', { className: 'dob-meta' }, row.error.message) : null,
         ))),
+      nextCursor
+        ? el('button', { type: 'button', className: 'dob-btn dob-more', disabled: busy, onClick: loadMore }, t('loadMore'))
+        : null,
     )
   }
 }

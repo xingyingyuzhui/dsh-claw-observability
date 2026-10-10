@@ -41,7 +41,8 @@ const COPY = {
     tracePlaceholder: 'traceId / 操作 / 错误码',
     clearTrace: '清除',
     count: '{shown} / {total} 条',
-    truncated: '只显示最近一段日志',
+    truncated: '只显示最近一段日志，筛选只作用于已加载的记录',
+    loadMore: '加载更早的记录',
     plugin_dsh_agent_registry: '登记',
     plugin_dsh_agent_identity: '人设',
     plugin_dsh_agent_policy: '策略',
@@ -80,7 +81,8 @@ const COPY = {
     tracePlaceholder: 'traceId / operation / code',
     clearTrace: 'Clear',
     count: '{shown} / {total}',
-    truncated: 'Showing the most recent slice of the log',
+    truncated: 'Showing the most recent slice of the log; filters apply to loaded records only',
+    loadMore: 'Load older records',
     plugin_dsh_agent_registry: 'Registry',
     plugin_dsh_agent_identity: 'Identity',
     plugin_dsh_agent_policy: 'Policy',
@@ -154,6 +156,7 @@ const CSS = [
   'body[' + ATTR + '] .dob-btn{height:32px;padding:0 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:13px}',
   'body[' + ATTR + '] .dob-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}',
   'body[' + ATTR + '] .dob-btn:disabled{opacity:.45;cursor:not-allowed}',
+  'body[' + ATTR + '] .dob-more{align-self:center}',
   'body[' + ATTR + '] .dob-empty{margin:0;font-size:13px;color:var(--dsw-alias-label-tertiary)}',
   'body[' + ATTR + '] .dob-note{margin:0;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
   'body[' + ATTR + '] .dob-list{display:flex;flex-direction:column;gap:8px}',
@@ -283,6 +286,8 @@ function serializeDiag(rows, format) {
   return list.map((row) => JSON.stringify(row)).join('\n') + (list.length ? '\n' : '')
 }
 
+const DIAG_PAGE = 500
+
 function rangeLabel(t, range) {
   if (range === 'yesterday') return t('rangeYesterday')
   if (range === 'week') return t('rangeWeek')
@@ -309,7 +314,7 @@ function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM) {
       return subscribeLocale(() => setLocaleTick((n) => n + 1))
     }, [subscribeLocale])
     const [rows, setRows] = React.useState([])
-    const [truncated, setTruncated] = React.useState(false)
+    const [nextCursor, setNextCursor] = React.useState(null)
     const [query, setQuery] = React.useState(emptyDiagQuery)
     const [openPick, setOpenPick] = React.useState('')
     const [menuBox, setMenuBox] = React.useState(null)
@@ -317,17 +322,24 @@ function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM) {
     const facets = diagFacets(rows)
     const visible = filterDiag(rows, query)
 
-    const load = React.useCallback(() => {
+    const load = React.useCallback((cursor) => {
       setBusy(true)
-      return post('/api/dsh-claw/observability/query', { limit: 500 }).then((data) => {
-        setRows(Array.isArray(data.items) ? data.items : [])
-        setTruncated(data.truncated === true)
+      const payload = cursor ? { limit: DIAG_PAGE, cursor } : { limit: DIAG_PAGE }
+      return post('/api/dsh-claw/observability/query', payload).then((data) => {
+        const items = Array.isArray(data.items) ? data.items : []
+        setRows((prev) => (cursor ? prev.concat(items) : items))
+        setNextCursor(typeof data.nextCursor === 'string' && data.nextCursor ? data.nextCursor : null)
       }).catch((err) => {
         toast(String(err.message || t('fail')))
       }).finally(() => setBusy(false))
     }, [])
 
-    React.useEffect(() => { load() }, [load])
+    const refresh = React.useCallback(() => load(null), [load])
+    const loadMore = React.useCallback(() => {
+      if (nextCursor) load(nextCursor)
+    }, [load, nextCursor])
+
+    React.useEffect(() => { refresh() }, [refresh])
 
     React.useEffect(() => {
       if (!openPick) return undefined
@@ -444,11 +456,11 @@ function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM) {
       menu('code', [{ id: 'all', label: t('codeAll') }].concat(facets.codes.map((id) => ({ id, label: id }))), query.code, (id) => setQuery({ ...query, code: id })),
       el('div', { className: 'dob-toolbar' },
         el('span', { className: 'dob-count' }, t('count', { shown: visible.length, total: rows.length })),
-        el('button', { type: 'button', className: 'dob-btn', disabled: busy, onClick: load }, t('refresh')),
+        el('button', { type: 'button', className: 'dob-btn', disabled: busy, onClick: refresh }, t('refresh')),
         el('button', { type: 'button', className: 'dob-btn', disabled: busy || visible.length === 0, onClick: () => download('jsonl') }, t('exportJson')),
         el('button', { type: 'button', className: 'dob-btn', disabled: busy || visible.length === 0, onClick: () => download('md') }, t('exportMd')),
       ),
-      truncated ? el('p', { className: 'dob-note' }, t('truncated')) : null,
+      nextCursor ? el('p', { className: 'dob-note' }, t('truncated')) : null,
       visible.length === 0
         ? el('p', { className: 'dob-empty' }, emptyText)
         : el('div', { className: 'dob-list' }, visible.map((row, index) => el('div', {
@@ -474,6 +486,9 @@ function createDiagPage(React, t, post, toast, subscribeLocale, ReactDOM) {
           ) : null,
           row.error && row.error.message ? el('div', { className: 'dob-meta' }, row.error.message) : null,
         ))),
+      nextCursor
+        ? el('button', { type: 'button', className: 'dob-btn dob-more', disabled: busy, onClick: loadMore }, t('loadMore'))
+        : null,
     )
   }
 }

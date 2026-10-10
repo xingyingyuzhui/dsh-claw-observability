@@ -14,8 +14,14 @@ export function apply(ctx) {
   registerJsonRoute(ctx, {
     path: '/api/dsh-claw/observability/query',
     handle: async (body) => {
-      const result = readDiag(getObserveHome(), body && body.limit)
-      return { items: result.items, truncated: result.truncated }
+      const input = body || {}
+      const result = readDiag(getObserveHome(), input.limit, input.cursor)
+      return {
+        items: result.items,
+        truncated: result.truncated,
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor,
+      }
     },
   })
 }

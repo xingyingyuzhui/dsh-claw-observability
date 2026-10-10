@@ -67,9 +67,41 @@ test('query returns newest sanitized events via Connection Fetch Request', async
   assert.equal(payload.items[0].code, 'REGISTRY_SAVE_FAILED')
   assert.equal(payload.items[0].token, undefined)
   assert.equal(payload.items[1].outcome, 'started')
+  assert.equal(payload.truncated, false)
+  assert.equal(payload.hasMore, false)
+  assert.equal(payload.nextCursor, null)
 
   const bad = await ctx.routes[0].fetch(new Request('dsh-app://host/api/dsh-claw/observability/query', {
     method: 'GET',
   }))
   assert.equal(bad.status, 405)
+})
+
+test('query pages with limit + cursor and rejects malformed cursors', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dob-page-'))
+  _internal.setDshHome(home)
+  await mkdir(join(home, 'agent-observe'), { recursive: true })
+  await writeFile(join(home, 'agent-observe', 'diag.jsonl'), Array.from({ length: 5 }, (_, i) => (
+    JSON.stringify({ plugin: 'dsh-claw-gate', outcome: 'started', durationMs: i })
+  )).join('\n') + '\n')
+  const ctx = fakeCtx()
+  apply(ctx)
+  const query = (body) => ctx.routes[0].fetch(new Request('dsh-app://host/api/dsh-claw/observability/query', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }))
+  const first = await (await query({ limit: 2 })).json()
+  assert.deepEqual(first.items.map((row) => row.durationMs), [4, 3])
+  assert.equal(first.truncated, true)
+  assert.equal(first.hasMore, true)
+  const second = await (await query({ limit: 2, cursor: first.nextCursor })).json()
+  assert.deepEqual(second.items.map((row) => row.durationMs), [2, 1])
+  const last = await (await query({ limit: 2, cursor: second.nextCursor })).json()
+  assert.deepEqual(last.items.map((row) => row.durationMs), [0])
+  assert.equal(last.nextCursor, null)
+
+  const bad = await query({ cursor: '../etc' })
+  assert.equal(bad.status, 400)
+  const payload = await bad.json()
+  assert.equal(payload.code, 'DIAG_CURSOR_INVALID')
 })

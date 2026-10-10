@@ -6,6 +6,7 @@ import { writeDiag } from './store.mjs'
 const als = new AsyncLocalStorage()
 const recent = new Map()
 const RATE_MS = 8000
+const TRACE_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/
 
 export function newId(prefix) {
   return prefix + randomUUID().replace(/-/g, '').slice(0, 12)
@@ -20,23 +21,41 @@ export function currentTraceId() {
   return ctx && ctx.traceId ? ctx.traceId : ''
 }
 
-function headerTrace(input) {
-  if (typeof input === 'string' && input.trim()) return input.trim()
-  const headers = input && input.headers
-  if (!headers) return ''
-  let raw
-  if (typeof headers.get === 'function') {
-    raw = headers.get('x-dsh-trace') || headers.get('x-dsh-trace-id')
-  } else {
-    raw = headers['x-dsh-trace'] || headers['X-DSH-Trace'] || headers['x-dsh-trace-id']
-  }
-  return raw ? String(raw).trim() : ''
+function cleanTrace(raw) {
+  const text = raw == null ? '' : String(raw).trim()
+  return TRACE_RE.test(text) ? text : ''
 }
 
+function headerTrace(input) {
+  if (typeof input === 'string') return cleanTrace(input)
+  if (!input || typeof input !== 'object') return ''
+  if (typeof input.traceId === 'string') return cleanTrace(input.traceId)
+  const headers = input.headers
+  if (!headers) return ''
+  if (typeof headers.get === 'function') {
+    return cleanTrace(headers.get('x-dsh-trace') || headers.get('x-dsh-trace-id'))
+  }
+  for (const key of Object.keys(headers)) {
+    const lower = key.toLowerCase()
+    if (lower === 'x-dsh-trace' || lower === 'x-dsh-trace-id') return cleanTrace(headers[key])
+  }
+  return ''
+}
+
+function toolCallTrace(input) {
+  const callId = input && typeof input === 'object' && (input.rootCallId || input.callId)
+  if (typeof callId !== 'string' || !callId) return ''
+  return 'tr_' + createHash('sha256').update(callId).digest('hex').slice(0, 12)
+}
+
+/**
+ * input: trace id string | Request (x-dsh-trace header) | { traceId } | tool execution.
+ * Nested tool calls share rootCallId, so they land on the same trace.
+ */
 export function runWithTrace(input, fn) {
   const existing = als.getStore()
   const incoming = headerTrace(input)
-  const traceId = incoming || (existing && existing.traceId) || newId('tr_')
+  const traceId = incoming || (existing && existing.traceId) || toolCallTrace(input) || newId('tr_')
   if (existing && existing.traceId === traceId) return fn()
   return als.run({
     traceId,
@@ -93,7 +112,7 @@ function levelOf(outcome) {
 export function operation(meta) {
   const spec = meta && typeof meta === 'object' ? meta : {}
   const parent = als.getStore()
-  const traceId = spec.traceId || (parent && parent.traceId) || newId('tr_')
+  const traceId = cleanTrace(spec.traceId) || (parent && parent.traceId) || newId('tr_')
   const parentOperationId = spec.parentOperationId || (parent && parent.operationId) || null
   const operationId = newId('op_')
   const started = Date.now()
